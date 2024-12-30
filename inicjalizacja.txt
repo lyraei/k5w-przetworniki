@@ -1,0 +1,13 @@
+włączyć i2c (extra inne interfejsy)
+sudo raspi-config
+
+sudo apt install i2c-tools
+
+pobranie OMB (opcjonalnie - ułatwienie życia)
+bash -c "$(wget https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh -O -)"
+
+pobieranie neovim
+wget --no-check-certificate --content-disposition https://github.com/neovim/neovim/releases/download/v0.10.3/nvim-macos-arm64.tar.gz
+
+konfiguracja /boot/firmware/config.txt
+sudo nvim /boot/firmware/config.txt
