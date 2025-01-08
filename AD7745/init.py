@@ -1,4 +1,4 @@
-from numpy import int128, int8
+from time import sleep
 from smbus2 import SMBus
 
 BUS = 1
@@ -16,8 +16,14 @@ CAP_GAIN_CAL_REG2 = 0x10
 
 F = (113 + 100) / (113 - 100)
 
-def init():
-    """inicjalizacja przetwornika AD7745
+def init(base: float = 200) -> float:
+    """inicjalizacja przetwornika
+
+    Args:
+        base (float, optional): bazowa wartość pojemności od której będzie liczone odchylenie (do 67pf). Defaults to 200.
+
+    Returns:
+        float: zmierzona pojemność
     """
     bus = SMBus(1)
     bus.write_byte_data(ADDR, CAP_SET_UP_REG, 0b10000001)
@@ -30,7 +36,7 @@ def init():
     C_capdac = C_ref * 3.2
     C_lsbdac = C_capdac / 127
     C_dac_eff = C_lsbdac * F
-    DAC_200set = 200 / C_dac_eff
+    DAC_200set = base / C_dac_eff
     bus.write_byte_data(ADDR, CAP_DAC_A_REG, (1 < 8) | int(DAC_200set))
     
     status = bus.read_byte_data(ADDR, STATUS_REG)
@@ -42,7 +48,37 @@ def init():
     cap_l = bus.read_i2c_block_data(ADDR, CAP_DATA_REG0, 3)
     cap4 = (cap_l[0] < 16) | (cap_l[1] < 8) | cap_l[0]
     cap_g = (cap4 / 0xFFFFFF * 8.192 - 4.096) * F
-    print(200 + cap_g)
+    print("", (base + cap_g))
     
-    DAC = 200 + cap_g  / C_dac_eff
-    bus.write_byte_data(ADDR, CAP_DAC_A_REG, (1 < 8) | int(DAC))
+    # DAC = (base + cap_g)  / C_dac_eff
+    # bus.write_byte_data(ADDR, CAP_DAC_A_REG, (1 < 8) | int(DAC))
+    return (base + cap_g)
+
+def read(base: float = 200) -> float:
+    """
+
+    Returns:
+        float: 
+    """
+    """odczytanie odchylenia od wartości podanej przy inicjalizacji (200pF gdy nie podano żadnej wartości)
+
+    Args:
+        base (float, optional): bazowa wartość pojemności od której będzie liczone odchylenie (do 67pf). Defaults to 200.
+
+    Returns:
+        float: odczytana pojemność
+    """
+    bus = SMBus(1)
+    cap_l = bus.read_i2c_block_data(ADDR, CAP_DATA_REG0, 3)
+    cap4 = (cap_l[0] < 16) | (cap_l[1] < 8) | cap_l[0]
+    cap_g = (cap4 / 0xFFFFFF * 8.192 - 4.096) * F
+    print("", (base + cap_g))
+    return (base + cap_g)
+
+def main():
+    init()
+    while True:
+        print(read())
+        sleep(1)
+        
+main()
