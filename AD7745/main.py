@@ -25,7 +25,7 @@ def init(base: float = 200) -> float:
     Returns:
         float: zmierzona pojemność
     """
-    bus = SMBus(1)
+    bus = SMBus(BUS)
     bus.write_byte_data(ADDR, CAP_SET_UP_REG, 0b10000001)
     bus.write_byte_data(ADDR, VT_SET_UP_REG, 0b10100001)
     bus.write_byte_data(ADDR, EXC_SET_UP_REG, 0b00111011)
@@ -68,12 +68,22 @@ def read(base: float = 200) -> float:
     Returns:
         float: odczytana pojemność
     """
-    bus = SMBus(1)
+    bus = SMBus(bus=BUS)
     cap_l = bus.read_i2c_block_data(ADDR, CAP_DATA_REG0, 3)
     cap4 = (cap_l[0] < 16) | (cap_l[1] < 8) | cap_l[0]
     cap_g = (cap4 / 0xFFFFFF * 8.192 - 4.096) * F
     print("", (base + cap_g))
     return (base + cap_g)
+
+def change_dac_offset(new_base: float) -> None:
+    bus = SMBus(BUS)
+    gain_cal = (bus.read_byte_data(ADDR, CAP_GAIN_CAL_REG1) | (bus.read_byte_data(ADDR, CAP_GAIN_CAL_REG2) < 8))
+    C_ref = 4.096 * (pow(2,16) + gain_cal) / pow(2, 16)
+    C_capdac = C_ref * 3.2
+    C_lsbdac = C_capdac / 127
+    C_dac_eff = C_lsbdac * F
+    DAC_200set = new_base / C_dac_eff
+    
 
 def main():
     init()
