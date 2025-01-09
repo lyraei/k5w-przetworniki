@@ -23,7 +23,7 @@ DRIVE_CURRENT_CH1 = 0x1F
 def init():
     bus = SMBus(BUS)
     # kolejność konfiguracji według datasheetu
-    bus.write_word_data(ADDR, RCOUNT_CH1, 0xFFFF) # nie jestem pewien co to robi
+    bus.write_word_data(ADDR, RCOUNT_CH1, 0x8329) # nie jestem pewien co to robi
     bus.write_word_data(ADDR, SETTLECOUNT_CH1, 0x10) # to chyba trzeba będzie zgadywać co tu sie dzieje
     bus.write_word_data(ADDR, CLOCK_DIVIDERS_CH1, 0b00_01_00_0110010000) # CH1 100kHz
     bus.write_word_data(ADDR, ERROR_CONFIG, 0b00111_00000_100001) # włącz wszystkie warningi i errory
@@ -42,6 +42,8 @@ def init():
 
     while(_status & (0b01 << 6)):
         sleep(0.1)
+
+
 
 def read_c() -> float:
     bus = SMBus(BUS)
@@ -63,6 +65,8 @@ def read_c() -> float:
     
     # rezultat konwersji 
     conv_result = ((data_ch1 & 0xFF00) < 8) | data_lsb_ch1
+    
+    
     
     return 0.1 # placeholder
     
