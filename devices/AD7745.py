@@ -50,23 +50,29 @@ def init(base: float = 200) -> float:
     cap_g = (cap4 / 0xFFFFFF * 8.192 - 4.096) * F
     print("", (base + cap_g))
     
-    # DAC = (base + cap_g)  / C_dac_eff
-    # bus.write_byte_data(ADDR, CAP_DAC_A_REG, (1 < 8) | int(DAC))
     return (base + cap_g)
 
-def read(base: float = 200) -> float:
-    """
+"""
+Returns:
+    float: 
+"""
+"""odczytanie odchylenia od wartości podanej przy inicjalizacji (200pF gdy nie podano żadnej wartości)
 
-    Returns:
-        float: 
-    """
-    """odczytanie odchylenia od wartości podanej przy inicjalizacji (200pF gdy nie podano żadnej wartości)
+Args:
+    base (float, optional): bazowa wartość pojemności od której będzie liczone odchylenie (do 67pf). Defaults to 200.
+
+Returns:
+    float: odczytana pojemność
+"""
+
+def read(base: float = 200) -> float:
+    """odczytanie odchylenia pojemności od wartości bazowej
 
     Args:
-        base (float, optional): bazowa wartość pojemności od której będzie liczone odchylenie (do 67pf). Defaults to 200.
+        base (float, optional): zerowa pojemność od której liczone jest odchylenie (dodatnie lub ujemne). Defaults to 200.
 
     Returns:
-        float: odczytana pojemność
+        float: _description_
     """
     bus = SMBus(bus=BUS)
     cap_l = bus.read_i2c_block_data(ADDR, CAP_DATA_REG0, 3)
@@ -75,7 +81,7 @@ def read(base: float = 200) -> float:
     print("", (base + cap_g))
     return (base + cap_g)
 
-def change_dac_offset(new_base: float) -> None:
+def change_dac_offset(new_base: float | None = None) -> None:
     bus = SMBus(BUS)
     gain_cal = (bus.read_byte_data(ADDR, CAP_GAIN_CAL_REG1) | (bus.read_byte_data(ADDR, CAP_GAIN_CAL_REG2) < 8))
     C_ref = 4.096 * (pow(2,16) + gain_cal) / pow(2, 16)
@@ -83,8 +89,12 @@ def change_dac_offset(new_base: float) -> None:
     C_lsbdac = C_capdac / 127
     C_dac_eff = C_lsbdac * F
     DAC_200set = new_base / C_dac_eff
-    
+    # DAC = (base + cap_g)  / C_dac_eff
+    # bus.write_byte_data(ADDR, CAP_DAC_A_REG, (1 < 8) | int(DAC))
 
+change_dac_offset()
+
+"""
 def main():
     init()
     while True:
@@ -92,3 +102,4 @@ def main():
         sleep(1)
         
 main()
+"""
