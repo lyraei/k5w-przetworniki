@@ -8,5 +8,5 @@ LS_CLOCK: float = 32768
 def init():
     pass
 
-def program_chip():
-    file = os.open("./program.hex", os.O_RDONLY)
+def main():
+    init()
