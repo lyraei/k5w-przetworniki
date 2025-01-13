@@ -7,12 +7,13 @@ teaxs.initialize()
 analog = AD7745.AD7745()
 analog.initialize()
 
-pcapv = PCAP04.PCAP04()
+pcap = PCAP04.PCAP04()
+pcap.initialize()
 
 def main():
     while True:
         sleep(1)
         print("FDC2212: C_sens = " + str(teaxs.read_capacitance()) + "[F]")
-        
-
+    
+    
 main()
