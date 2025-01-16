@@ -5,6 +5,20 @@ import os
 HC_CLOCK: float = 4e6
 LS_CLOCK: float = 32768
 
+"""
+The PCap04 standard firmware provides capacitance and temperature measurement results as raw ratio. Thereby, the firmware considers the configuration settings and delivers the results accordingly. The following modes/features are supported (not exhaustive):
+•	Capacitance ratio (C_ratio)
+•	Temperature (R_ratio)
+•	Pulse output (PWM/PDM)
+•	Stray compensation
+
+Result registers (see comments in header):
+RES0 .... 5 : Capacitance Ratios for Capacitance Ports PC0.....5
+RES6: Resistance Ratio for External Sensor at Port PT1, w.r.t. Internal or External reference
+RES7: Resistance Ratio for Internal sensor, w.r.t. Internal or External reference
+PULSE0 & PULSE1:	Pulse Outputs
+"""
+
 class PCAP04:
     
     CFG00 = 0x00
@@ -50,33 +64,77 @@ class PCAP04:
     CFG40 = 0x28
     CFG41 = 0x29
     CFG42 = 0x2A
-    ''' ..... '''
+    '''  ...'''
     CFG47 = 0x2F
     CFG48 = 0x31
     CFG49 = 0x32
     CFG50 = 0x33
-    ''' ..... '''
+    '''  ...'''
     CFG54 = 0x36
-    ''' ..... '''
+    '''  ...'''
     CFG62 = 0x3E
     CFG63 = 0x3F
     
-    def __init__(self, bus=1, address=0x50 ) : # ¿¿¿0x50???
+    firmware = open("/home/surban/Public/k5w-przetworniki/firmware/PCap04_standard_v1.hex")
+    
+    OPCODE = {
+        "wr_mem": 0xA000,
+        "rd_mem": 0x2000,
+        "wr_config": 0xA3C0,
+        "rd_congif": 0x23C0,
+        "rd_res": 0x40,
+        "POR": 0x88,
+        "init": 0x8A,
+        "CDC_start": 0x8C,
+        "RDC_start": 0x8E,
+        "dsp_trig": 0x8D,
+        "nv_store": 0x96,
+        "nv_recall": 0x99,
+        "nv_erase": 0x9C,
+        "test_read": 0x7E11
+    }
+    
+    def __init__(self, bus=1, address=0x28 ) :
         """initialize PCAP04"""
         self.bus = SMBus(bus)
         self.address = address
+        
+    def read_register_sram(self, reg) -> int:
+        """Read from NVRAM"""
+        try:
+            self.bus.write_block_data(self.address, (reg >> 8) + (self.OPCODE["rd_mem"] >> 8), reg)
+            return self.bus.read_byte(self.address)
+        except:
+            print(f"Error reading NVARM {hex(reg)}")
+            return -1
+            
+    def write_register_sram(self, reg, data):
+        """Write to NVRAM"""
+        try:
+            self.bus.write_block_data(self.address, reg + (self.OPCODE["rd_mem"] >> 8), [reg, data])
+        except:
+            print(f"Error writing to NVRAM {hex(reg)}")
     
     def initialize(self):
-        self.bus.write_byte_data(self.address, self.CFG00, 0x0) # ???
-        self.bus.write_byte_data(self.address, self.CFG01, 0x0) # ???
-        # self.bus.write_byte_data(self.address, self.CFG02, 0x) zostawić default
-        self.bus.write_byte_data(self.address, self.CFG03, 0x0) # ???
-        self.bus.write_byte_data(self.address, self.CFG04, 0x91) # ???
-        self.bus.write_byte_data(self.address, self.CFG05, 0x00) # ???
-        self.bus.write_byte_data(self.address, self.CFG06, 0x03) # ???
-        self.bus.write_byte_data(self.address, self.CFG07, 0xFF) # ???
-        self.bus.write_byte_data(self.address, self.CFG08, 0x00) # ???
-        self.bus.write_byte_data(self.address, self.CFG09, 0x) # ???
-        self.bus.write_byte_data(self.address, self.CFG10, 0x) # ???
-        self.bus.write_byte_data(self.address, self.CFG11, 0x) # ???
-        self.bus.write_byte_data(self.address, self.CFG12, 0x) # ???
+        self.bus.write_byte(self.address, self.OPCODE["init"])
+        self.bus.write_byte(self.address, self.OPCODE["CDC_start"])
+        # self.write_register(self.CFG00, 0x00) # ???
+        # self.write_register(self.CFG01, 0x00) # ???
+        # self.write_register(self.CFG02, 0x00) # zostawić default
+        # self.write_register(self.CFG03, 0x00) # ???
+        # self.write_register(self.CFG04, 0x91) # ???
+        # self.write_register(self.CFG05, 0x00) # ???
+        # self.write_register(self.CFG06, 0x03) # ???
+        # self.write_register(self.CFG07, 0xFF) # ???
+        # self.write_register(self.CFG08, 0x00) # ???
+        # self.write_register(self.CFG09, 0x00) # ???
+        # self.write_register(self.CFG10, 0x00) # ???
+        # self.write_register(self.CFG11, 0x00) # ???
+        # self.write_register(self.CFG12, 0x00) # ???
+        
+    def read_capacitance(self, reg) -> int:
+        return self.read_register_sram(reg)
+    
+    def test(self):
+        self.bus.write_byte(self.address, 0x7e)
+        print(hex(self.bus.read_byte(self.address)))

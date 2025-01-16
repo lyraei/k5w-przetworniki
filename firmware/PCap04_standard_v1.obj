@@ -1,0 +1,38 @@
+;	JUMPLABEL Declarations
+CONST	__SOP__	0x000	; 0
+CONST	MK_IDLE	0x006	; 6
+CONST	MK_QUERY_FLAG1	0x009	; 9
+CONST	MK_QUERY_FLAG2	0x013	; 19
+CONST	MK_QUERY_FLAG3	0x018	; 24
+CONST	MK_SKIP_BG_TRIG_AT_START	0x01d	; 29
+CONST	MK_QUERY_FLAG6	0x021	; 33
+CONST	MK_QUERY_FLAG7	0x027	; 39
+CONST	MK_QUERY_HS_MODE	0x02a	; 42
+CONST	MK_QUERY_CDC_TRIG_N	0x02f	; 47
+CONST	MK_query_a	0x032	; 50
+CONST	MK_EOP	0x037	; 55
+CONST	MK_skip_BG_TRIG	0x03c	; 60
+CONST	cdc_is_bsy	0x051	; 81
+CONST	MK_set_interrupt	0x053	; 83
+CONST	MK_RO_STOP	0x054	; 84
+CONST	MK_Initialize	0x055	; 85
+CONST	MK_No_HS_Mode	0x07f	; 127
+CONST	MK_load_timer	0x086	; 134
+CONST	MK_main	0x093	; 147
+CONST	MK_skip_rdc	0x099	; 153
+CONST	MK_cdc_process	0x09d	; 157
+CONST	MK_format_MV_loop	0x0ad	; 173
+CONST	MK_No_change_in_MV	0x0c3	; 195
+CONST	MK_Copy_Results	0x0ef	; 239
+CONST	MK_mw_overflow	0x116	; 278
+CONST	MK_cdc_reinitialize	0x127	; 295
+CONST	MK_cdc_process_end	0x12d	; 301
+CONST	MK_rdc_process	0x12e	; 302
+CONST	MK_ext_ref_init	0x142	; 322
+CONST	MK_skip_ext_ref_init	0x146	; 326
+CONST	MK_Copy_RDC_Results	0x157	; 343
+CONST	MK_rdc_reinitialize	0x169	; 361
+CONST	MK_rdc_process_end	0x173	; 371
+CONST	MK_Pulse_Interface	0x174	; 372
+
+
