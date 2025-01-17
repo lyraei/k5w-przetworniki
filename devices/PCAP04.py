@@ -1,5 +1,5 @@
 from time import sleep
-from smbus2 import SMBus
+from smbus2 import SMBus, i2c_msg
 import os
 
 HC_CLOCK: float = 4e6
@@ -75,7 +75,13 @@ class PCAP04:
     CFG62 = 0x3E
     CFG63 = 0x3F
     
-    firmware = open("/home/surban/Public/k5w-przetworniki/firmware/PCap04_standard_v1.hex")
+    with open("/home/surban/Public/k5w-przetworniki/firmware/PCap04_standard_v1.hex", 'r') as file:
+        hex_values = []
+        for line in file:
+            line = line.strip()
+            for hex_str in line.split():
+                hex_int = int(hex_str, 16)
+                hex_values.append(hex_int)
     
     OPCODE = {
         "wr_mem": 0xA000,
@@ -99,7 +105,21 @@ class PCAP04:
         self.bus = SMBus(bus)
         self.address = address
         
-    def read_register_sram(self, reg) -> int:
+    def write_firmware(self, firmware: list):
+        """write firmware to NVRAM"""
+        self.bus.write_i2c_block_data(self.address, self.OPCODE["wr_mem"] >> 8, firmware)
+        
+    def read_firmware(self) -> list:
+        """read firmware from NVRAM"""
+        msg = i2c_msg.read(self.address, 0x128)
+        
+        self.bus.write_byte_data(self.address, (self.OPCODE["rd_mem"] & 0xFF00) >> 8 + 0x00, 0x00)
+        
+        ret = msg.from_address(self.address)
+
+        return [0x00, 0x00]
+        
+    def read_register_nvram(self, reg) -> int:
         """Read from NVRAM"""
         try:
             self.bus.write_block_data(self.address, (reg >> 8) + (self.OPCODE["rd_mem"] >> 8), reg)
@@ -108,16 +128,15 @@ class PCAP04:
             print(f"Error reading NVARM {hex(reg)}")
             return -1
             
-    def write_register_sram(self, reg, data):
+    def write_register_nvram(self, reg, data):
         """Write to NVRAM"""
         try:
-            self.bus.write_block_data(self.address, reg + (self.OPCODE["rd_mem"] >> 8), [reg, data])
+            self.bus.write_block_data(self.address, reg + (self.OPCODE["wr_mem"] >> 8), [reg, data])
         except:
             print(f"Error writing to NVRAM {hex(reg)}")
     
     def initialize(self):
         self.bus.write_byte(self.address, self.OPCODE["init"])
-        self.bus.write_byte(self.address, self.OPCODE["CDC_start"])
         # self.write_register(self.CFG00, 0x00) # ???
         # self.write_register(self.CFG01, 0x00) # ???
         # self.write_register(self.CFG02, 0x00) # zostawić default
@@ -133,8 +152,21 @@ class PCAP04:
         # self.write_register(self.CFG12, 0x00) # ???
         
     def read_capacitance(self, reg) -> int:
-        return self.read_register_sram(reg)
+        return self.read_register_nvram(reg)
     
     def test(self):
         self.bus.write_byte(self.address, 0x7e)
         print(hex(self.bus.read_byte(self.address)))
+        sleep(0.1)
+        self.write_firmware(hex_values)
+        
+        self.bus.write_byte(self.address, 0x88)
+        self.bus.write_byte(self.address, 0x8C)
+        # sleep(0.1)
+        print("STATUS_0: ", bin(self.bus.read_byte_data(self.address, 0x40 + 32)))
+        print("STATUS_1: ", bin(self.bus.read_byte_data(self.address, 0x40 + 33)))
+        print("STATUS_2: ", bin(self.bus.read_byte_data(self.address, 0x40 + 34)))
+        
+        for i in range(0, 4):
+            print("CDC reg: ",i , self.bus.read_byte_data(self.address, 0x40 + i))    
+        
