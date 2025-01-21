@@ -1,3 +1,5 @@
+import opcode
+from termios import TCXONC
 from time import sleep
 from smbus2 import SMBus, i2c_msg
 import os
@@ -85,9 +87,9 @@ class PCAP04:
     
     OPCODE = {
         "wr_mem": 0xA000,
-        "rd_mem": 0x2000,
+        "rd_mem": 0x20,
         "wr_config": 0xA3C0,
-        "rd_congif": 0x23C0,
+        "rd_congig": 0x23C0,
         "rd_res": 0x40,
         "POR": 0x88,
         "init": 0x8A,
@@ -101,32 +103,53 @@ class PCAP04:
     }
     
     def __init__(self, bus=1, address=0x28 ) :
-        """initialize PCAP04"""
         self.bus = SMBus(bus)
         self.address = address
         
-    def write_firmware(self, firmware: list):
-        """write firmware to NVRAM"""
-        self.bus.write_i2c_block_data(self.address, self.OPCODE["wr_mem"] >> 8, firmware)
+    def i2c_memory_write(self, address: int, firmware: list):
+        opcode = 0xA0
+        i2ctx = []
         
-    def read_firmware(self) -> list:
-        """read firmware from NVRAM"""
-        msg = i2c_msg.read(self.address, 0x128)
+        i2ctx.append(opcode | (address >> 8))
+        i2ctx.append(address)
+        for i in range(0, len(firmware)):
+            i2ctx.append(firmware[i])
         
-        self.bus.write_byte_data(self.address, (self.OPCODE["rd_mem"] & 0xFF00) >> 8 + 0x00, 0x00)
+        tx = i2c_msg.write(self.address, i2ctx)
+        self.bus.i2c_rdwr(tx)
         
-        ret = msg.from_address(self.address)
-
-        return [0x00, 0x00]
+    def i2c_memory_read(self, address: int, len: int) -> list:
+        opcode = 0x20
+        hex_values = []
+        
+        wr = i2c_msg.write(self.address, [opcode | (address >> 8), address])
+        rd = i2c_msg.read(self.address, len)
+        self.bus.i2c_rdwr (wr, rd)
+        
+        return list(rd) # type: ignore
+    
+    def i2c_congig_write(self, address: int, config: int):
+        opcode = 0xA3C0
+        i2ctx = []
+        
+        i2ctx.append(opcode >> 8)
+        i2ctx.append((opcode & 0xFF) | address)
+        i2ctx.append(config)
+        
+        tx = i2c_msg.write(self.address, i2ctx)
+        self.bus.i2c_rdwr(tx)
+        
+    def i2c_result_read(self, address: int) -> int:
+        opcode = 0x40
+        
+        wr = i2c_msg.write(self.address, [(opcode >> 8), ((opcode & 0xFF) | address)])
+        rd = i2c_msg.read(self.address, 1)
+        self.bus.i2c_rdwr (wr, rd)
+        return int(rd)
         
     def read_register_nvram(self, reg) -> int:
-        """Read from NVRAM"""
-        try:
-            self.bus.write_block_data(self.address, (reg >> 8) + (self.OPCODE["rd_mem"] >> 8), reg)
-            return self.bus.read_byte(self.address)
-        except:
-            print(f"Error reading NVARM {hex(reg)}")
-            return -1
+        self.bus.write_i2c_block_data(self.address, reg + self.OPCODE["rd_mem"], reg)
+        return self.bus.read_byte(self.address)
             
     def write_register_nvram(self, reg, data):
         """Write to NVRAM"""
@@ -136,7 +159,7 @@ class PCAP04:
             print(f"Error writing to NVRAM {hex(reg)}")
     
     def initialize(self):
-        self.bus.write_byte(self.address, self.OPCODE["init"])
+        self.bus.write_byte(self.address, 0x8A)
         # self.write_register(self.CFG00, 0x00) # ???
         # self.write_register(self.CFG01, 0x00) # ???
         # self.write_register(self.CFG02, 0x00) # zostawić default
@@ -155,18 +178,23 @@ class PCAP04:
         return self.read_register_nvram(reg)
     
     def test(self):
-        self.bus.write_byte(self.address, 0x7e)
-        print(hex(self.bus.read_byte(self.address)))
-        sleep(0.1)
-        self.write_firmware(hex_values)
+        self.i2c_memory_write(0, self.hex_values[0:len(self.hex_values) - 2])
+        self.i2c_congig_write(47, 0x01) # runbit
         
-        self.bus.write_byte(self.address, 0x88)
-        self.bus.write_byte(self.address, 0x8C)
+        while True:
+            print(self.i2c_result_read())
+        # temp = self.i2c_memory_read(0, len(self.hex_values) - 2)
+        # print(temp)
+        
+        # self.bus.write_byte(self.address, 0x88)
+        # self.bus.write_byte(self.address, 0x8C)
         # sleep(0.1)
-        print("STATUS_0: ", bin(self.bus.read_byte_data(self.address, 0x40 + 32)))
-        print("STATUS_1: ", bin(self.bus.read_byte_data(self.address, 0x40 + 33)))
-        print("STATUS_2: ", bin(self.bus.read_byte_data(self.address, 0x40 + 34)))
+        # print("STATUS_0: ", bin(self.bus.read_byte_data(self.address, 0x40 + 32)))
+        # print("STATUS_1: ", bin(self.bus.read_byte_data(self.address, 0x40 + 33)))
+        # print("STATUS_2: ", bin(self.bus.read_byte_data(self.address, 0x40 + 34)))
         
-        for i in range(0, 4):
-            print("CDC reg: ",i , self.bus.read_byte_data(self.address, 0x40 + i))    
+        # print([0 + (self.OPCODE["wr_mem"] & 0x00FF)] + self.hex_values)
+        
+        # for i in range(0, 4):
+        #     print("CDC reg: ",i , self.bus.read_byte_data(self.address, 0x40 + i))    
         
